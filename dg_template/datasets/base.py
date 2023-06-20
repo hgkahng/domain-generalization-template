@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset
 
 
-class MultipleDomainDataset(torch.utils.data.Dataset):  # TODO: inherit torch.utils.Dataset ?
+class MultipleDomainCollection(object):
     def __init__(self):
         super().__init__()
 
@@ -20,12 +20,6 @@ class MultipleDomainDataset(torch.utils.data.Dataset):  # TODO: inherit torch.ut
         self._id_validation_datasets = list()
         self._ood_validation_datasets = list()  # some datasets do not have OOD validation sets
         self._test_datasets = list()
-
-    def __getitem__(self, index: int):
-        raise NotImplementedError
-
-    def __len__(self):
-        raise NotImplementedError
 
     def get_train_data(self, as_dict: bool = False) -> typing.Union[typing.Dict[str, Dataset],
                                                                     typing.List[Dataset],

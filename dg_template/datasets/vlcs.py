@@ -17,7 +17,7 @@ from torchvision.io import read_image, ImageReadMode
 from torchvision.transforms import Resize
 from torchvision.transforms.functional import pil_to_tensor
 
-from dg_template.datasets.base import MultipleDomainDataset
+from dg_template.datasets.base import MultipleDomainCollection
 
 
 def pil_loader(path: str) -> Image.Image:
@@ -58,7 +58,7 @@ class SingleVLCS(torch.utils.data.Dataset):
         return len(self.input_files)
 
 
-class VLCS(MultipleDomainDataset):
+class VLCS(MultipleDomainCollection):
     
     _url: str = "https://drive.google.com/uc?id=1skwblH1_okBwxWxmRsp9_qi15hyPpxg8"
     _env_mapper = {

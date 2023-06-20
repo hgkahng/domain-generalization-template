@@ -18,7 +18,7 @@ from torchvision.io import read_image, ImageReadMode
 from torchvision.transforms import Resize
 from torchvision.transforms.functional import pil_to_tensor
 
-from dg_template.datasets.base import MultipleDomainDataset
+from dg_template.datasets.base import MultipleDomainCollection
 
 
 def pil_loader(path: str) -> Image.Image:
@@ -27,7 +27,7 @@ def pil_loader(path: str) -> Image.Image:
         return img.convert("RGB")
 
 
-class PACS(MultipleDomainDataset):
+class PACS(MultipleDomainCollection):
 
     _url = "https://drive.google.com/uc?id=1JFr8f805nMUelQWWmfnJR3y4_SYoN5Pd"
     _env_mapper = {
