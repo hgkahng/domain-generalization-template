@@ -4,8 +4,46 @@ import typing
 
 import torch
 import torch.nn as nn
+import lightning as L
 
 from torch.utils.data import Dataset
+
+
+class MultipleDomainData(L.LightningDataModule):
+    def __init__(self):
+        super().__init__()
+    
+    def prepare_data(self):
+        """
+        Code for downloading data.
+            # download, split, etc...
+            # only called on 1 GPU/TPU in distributed (on main process)
+        """
+        raise NotImplementedError
+
+    def setup(self, stage: str):
+        """
+        Code for assigning train/val/test datasets for use in dataloaders.
+        `setup()` is called after `prepare_data()` and there is a barrier in
+        between which ensures that all the processes proceed to setup once the
+        data is prepared and available for use.
+            # make assignments here (val/train/test split)
+            # called on every process in DDP
+        """
+        raise NotImplementedError
+    
+    def train_dataloader(self):
+        raise NotImplementedError
+    
+    def val_dataloader(self):
+        raise NotImplementedError
+    
+    def test_dataloader(self):
+        raise NotImplementedError
+    
+    def predict_dataloader(self):
+        return NotImplementedError
+    
 
 
 class MultipleDomainCollection(object):
