@@ -144,11 +144,13 @@ class VLCS(torch.utils.data.Dataset):
 class VLCSDataModule(SupervisedDataModule):
     """Add class docstring."""
     def __init__(self,
-                 root: str,
+                 root: str = 'data/domainbed/vlcs',
                  train_environments: typing.Iterable[str] = ['V', 'L', 'C'],
                  test_environments: typing.Iterable[str] = ['S'],
                  validation_size: float = 0.2,
                  random_state: int = 42,
+                 batch_size: int = 32,
+                 num_workers: int = 1,
                  download: bool = False):
         
         super().__init__()
@@ -161,6 +163,9 @@ class VLCSDataModule(SupervisedDataModule):
         
         self.validation_size: float = validation_size
         self.random_state: int = random_state
+
+        self.batch_size = batch_size
+        self.num_workers = num_workers
 
         # collection of train / id-validation datasets
         self._train_datasets = []
@@ -279,8 +284,8 @@ class VLCSDep(MultipleDomainCollection):
             val_indices = env_indices[:split_idx]
             train_indices = env_indices[split_idx:]
 
-            self._train_datasets += [SingleVLCS(input_files[train_indices])]
-            self._id_validation_datasets += [SingleVLCS(input_files[val_indices])]
+            # self._train_datasets += [SingleVLCS(input_files[train_indices])]
+            # self._id_validation_datasets += [SingleVLCS(input_files[val_indices])]
 
         # create test dataset
         self._test_datasets = list()
@@ -290,7 +295,7 @@ class VLCSDep(MultipleDomainCollection):
             env_str, _ = self._env_mapper[env]
             env_mask = (env_strings == env_str)
 
-            self._test_datasets += [SingleVLCS(input_files[env_mask])]
+            # self._test_datasets += [SingleVLCS(input_files[env_mask])]
 
         # domains as integer values
         self.train_domains = [self._env_mapper[env][1] for env in self.train_environments]
