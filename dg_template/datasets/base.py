@@ -9,7 +9,7 @@ import lightning as L
 from torch.utils.data import Dataset
 
 
-class MultipleDomainData(L.LightningDataModule):
+class MultipleDomainDataModule(L.LightningDataModule):
     def __init__(self):
         super().__init__()
     
@@ -43,7 +43,21 @@ class MultipleDomainData(L.LightningDataModule):
     
     def predict_dataloader(self):
         return NotImplementedError
-    
+
+
+class SupervisedDataModule(MultipleDomainDataModule):
+    def __init__(self):
+        super().__init__()
+
+
+class SemiSupervisedDataModule(MultipleDomainDataModule):
+    def __init__(self):
+        super().__init__()
+
+
+class SelfSupervisedDataModule(MultipleDomainDataModule):
+    def __init__(self):
+        super().__init__()
 
 
 class MultipleDomainCollection(object):
