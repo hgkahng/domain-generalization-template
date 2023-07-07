@@ -28,11 +28,7 @@ from dg_template.datasets.base import MultipleDomainCollection
 from dg_template.datasets.base import SupervisedDataModule
 from dg_template.datasets.base import SemiSupervisedDataModule
 
-
-def pil_loader(path: str) -> Image.Image:
-    with open(path, "rb") as f:
-        img = Image.open(f)
-        return img.convert("RGB")
+from dg_template.datasets.utils import pil_loader
 
 
 class PACS(torch.utils.data.Dataset):
@@ -40,8 +36,6 @@ class PACS(torch.utils.data.Dataset):
     _allowed_labels = ('dog', 'elephant', 'giraffe', 'guitar', 'horse', 'house', 'person')
     _allowed_domains = ('photo', 'art_painting', 'cartoon', 'sketch')
     _size = (224, 224)
-
-    _url = "https://drive.google.com/uc?id=1JFr8f805nMUelQWWmfnJR3y4_SYoN5Pd"
     _env_mapper = {
         'P': ('photo', 0),
         'A': ('art_painting', 1),
@@ -141,8 +135,8 @@ class PACSDataModule(SupervisedDataModule):
 
         super().__init__()
 
-        self.root = root
-        self.download = download
+        self.root: str = root
+        self.download: bool = download
 
         self.train_environments = train_environments
         self.test_environments = test_environments
@@ -154,8 +148,8 @@ class PACSDataModule(SupervisedDataModule):
         self.num_workers = num_workers
 
         # collection of train / id-validation datasets
-        self._train_datasets = []
-        self._id_validation_datasets = []
+        self._train_datasets = list()
+        self._id_validation_datasets = list()
         for env in self.train_environments:
             
             dataset = PACS(root=self.root, environments=[env])  # full training dataset
@@ -164,7 +158,6 @@ class PACSDataModule(SupervisedDataModule):
                 np.arange(len(dataset)),
                 test_size=self.validation_size,
                 random_state=self.random_state,
-                shuffle=True,
                 stratify=dataset.labels  # 1d array
                 )
             
@@ -219,93 +212,120 @@ class PACSDataModule(SupervisedDataModule):
                           num_workers=kwargs.get('num_workers', self.num_workers),
                           )
 
-class PACSDep(MultipleDomainCollection):
 
-    _url = "https://drive.google.com/uc?id=1JFr8f805nMUelQWWmfnJR3y4_SYoN5Pd"
-    _env_mapper = {
-        'P': ('photo', 0),
-        'A': ('art_painting', 1),
-        'C': ('cartoon', 2),
-        'S': ('sketch', 3),
-    }
 
+class SemiPACSDataModule(SemiSupervisedDataModule):
     def __init__(self,
-                 root: str = 'data/domainbed/pacs/',
-                 train_environments: typing.List[str] = ['P', 'A', 'C'],
-                 test_environments: typing.List[str] = ['S'],
-                 holdout_fraction: float = 0.2,  # size of ID validation data
-                 download: bool = False
-                 ) -> None:
+                 root: str = 'data/domainbed/pacs',
+                 train_environments: typing.Iterable[str] = ['P', 'A', 'C'],
+                 test_environments: typing.Iterable[str] = ['S'],
+                 validation_size: float = 0.2,
+                 labeled_size: float = 0.05,
+                 random_state: int = 42,
+                 batch_size: int = 32,
+                 num_workers: int = 1,
+                 download: bool = False,
+                 ):
         
         super().__init__()
-        self.root = root
+
+        self.root: str = root
+        self.download: bool = download
+
         self.train_environments = train_environments
         self.test_environments = test_environments
-        self.holdout_fraction = holdout_fraction
 
-        if download and (not os.path.exists(f'{self.root}/PACS.zip')):
-            self._download()
+        self.validation_size: float = validation_size
+        self.labeled_size: float = labeled_size  # TODO: support for exact number of examples per class
 
-        # find all JPG files
-        input_files = np.array(
-            glob.glob(os.path.join(self.root, "**/*.jpg"), recursive=True)
-        )
+        self.random_state: int = random_state
 
-        # find environment names (i.e., photo, art_painting, cartoon, sketch)
-        env_strings = np.array([pathlib.Path(f).parent.parent.name for f in input_files])
+        self.batch_size = batch_size
+        self.num_workers = num_workers
 
-        # create {train, val} datasets for each domain
-        self._train_datasets = []
-        self._id_validation_datasets = []
+        # collection of train (labeled & unlabeled) / id-validation datasets
+        self._labeled_datasets = list()
+        self._unlabeled_datasets = list()
+        self._id_validation_datasets = list()
         for env in self.train_environments:
 
-            # domain mask (& indices)
-            env_str, _ = self._env_mapper[env]
-            env_mask = (env_strings == env_str)
-            env_indices = np.where(env_mask)[0]
+            dataset = PACS(root=self.root, environments=[env])  # full training dataset
 
-            # FIXME: stratify with labels?
-            # train, validation mask (& indices)
-            np.random.shuffle(env_indices);  # TODO: set random seed
-            split_idx = int(self.holdout_fraction * len(env_indices))
-            val_indices = env_indices[:split_idx]
-            train_indices = env_indices[split_idx:]
-
-            self._train_datasets += []          # TODO:
-            self._id_validation_datasets += []  # TODO: 
-
-        # create test dataset
-        self._test_datasets = list()
-        for env in self.test_environments:
-
-            # domain mask
-            env_str, _ = self._env_mapper[env]
-            env_mask = (env_strings == env_str)
-
-            self._test_datasets += []  # TODO:
-
-        # domains as integer values
-        self.train_domains = [self._env_mapper[env][1] for env in self.train_environments]
-        self.test_domains = [self._env_mapper[env][1] for env in self.test_environments]
-
-    def _download(self) -> None:
-        
-        os.makedirs(self.root, exist_ok=True)
-        
-        # download
-        _dst = os.path.join(self.root, 'PACS.zip')
-        if not os.path.exists(_dst):
-            gdown.download(self._url, _dst, quiet=False)
-        
-        # extract
-        from zipfile import ZipFile
-        zf = ZipFile(_dst, "r")
-        zf.extractall(os.path.dirname(_dst))
-        zf.close()
-        
-        # rename directory
-        if os.path.isdir(os.path.join(self.root, 'kfold')):
-            os.rename(
-                src=os.path.join(self.root, "kfold"),
-                dst=os.path.join(self.root, 'PACS')
+            # 1) split train / validation indices
+            tr_idx, val_idx = train_test_split(
+                np.arange(dataset.__len__()),
+                test_size=self.validation_size,
+                random_state=self.random_state,
+                stratify=dataset.labels,
             )
+
+            self._id_validation_datasets.append(
+                Subset(dataset, indices=torch.from_numpy(val_idx))
+            )
+
+            # 2) split labeled & unlabeled indices
+            labeled_idx, unlabeled_idx = train_test_split(
+                tr_idx,
+                train_size=labeled_size,
+                random_state=random_state,
+                stratify=dataset.labels[tr_idx]
+            )
+
+            self._labeled_datasets.append(
+                Subset(dataset, indices=torch.from_numpy(labeled_idx))
+            )
+
+            self._unlabeled_datasets.append(
+                Subset(dataset, indices=torch.from_numpy(unlabeled_idx))
+            )
+
+        # collection of test datasets
+        self._test_datasets = [
+            PACS(root=self.root, environments=[env]) for env in self.test_environments
+        ]
+
+    def prepare_data(self):
+        if self.download:
+            PACS.download(root=self.root)
+
+    def setup(self, stage: str):
+        
+        if stage == 'fit':
+            pass
+
+        if stage == 'test':
+            pass
+
+        if stage == 'predict':
+            pass
+
+    def train_dataloader(self, **kwargs):
+        return self._labeled_dataloader(**kwargs), self._unlabeled_dataloader(**kwargs)
+
+    def _labeled_dataloader(self, **kwargs):
+        concat = ConcatDataset(self._labeled_datasets)
+        return DataLoader(concat,
+                          batch_size=kwargs.get('batch_size', self.batch_size),
+                          num_workers=kwargs.get('num_workers', self.num_workers)
+                          )
+
+    def _unlabeled_dataloader(self, **kwargs):
+        concat = ConcatDataset(self._unlabeled_datasets)
+        return DataLoader(concat,
+                          batch_size=kwargs.get('batch_size', self.batch_size),
+                          num_workers=kwargs.get('num_workers', self.num_workers)
+                          )
+
+    def val_dataloader(self, **kwargs):
+        concat = ConcatDataset(self._id_validation_datasets)
+        return DataLoader(concat,
+                          batch_size=kwargs.get('batch_size', self.batch_size),
+                          num_workers=kwargs.get('num_workers', self.num_workers)
+                          )
+
+    def test_dataloader(self, **kwargs):
+        concat = ConcatDataset(self._test_datasets)
+        return DataLoader(concat,
+                          batch_size=kwargs.get('batch_size', self.batch_size),
+                          num_workers=kwargs.get('num_workers', self.num_workers),
+                          )

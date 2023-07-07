@@ -29,11 +29,7 @@ from dg_template.datasets.base import MultipleDomainData
 from dg_template.datasets.base import SupervisedDataModule
 from dg_template.datasets.base import SemiSupervisedDataModule
 
-
-def pil_loader(path: str) -> Image.Image:
-    with open(path, "rb") as f:
-        img = Image.open(f)
-        return img.convert("RGB")
+from dg_template.datasets.utils import pil_loader
 
 
 class VLCS(torch.utils.data.Dataset):
@@ -55,8 +51,6 @@ class VLCS(torch.utils.data.Dataset):
     _allowed_labels = ('bird', 'car', 'chair', 'dog', 'person')
     _allowed_domains = ('VOC2007', 'LabelMe', 'Caltech101', 'SUN09')
     _size = (224, 224)
-
-    _url = "https://drive.google.com/uc?id=1skwblH1_okBwxWxmRsp9_qi15hyPpxg8"
     _env_mapper = {
         'V': ('VOC2007', 0),
         'L': ('LabelMe', 1),
