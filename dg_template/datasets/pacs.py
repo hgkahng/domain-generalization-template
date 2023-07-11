@@ -29,6 +29,7 @@ from dg_template.datasets.base import SupervisedDataModule
 from dg_template.datasets.base import SemiSupervisedDataModule
 
 from dg_template.datasets.utils import pil_loader
+from dg_template.datasets.loaders import InfiniteDataLoader
 
 
 class PACS(torch.utils.data.Dataset):
@@ -95,6 +96,7 @@ class PACS(torch.utils.data.Dataset):
 
     @staticmethod
     def download(root: str) -> None:
+        """Download & extract PACS dataset."""
         
         url = "https://drive.google.com/uc?id=1JFr8f805nMUelQWWmfnJR3y4_SYoN5Pd"
         dst = "PACS.zip"
@@ -159,7 +161,7 @@ class PACSDataModule(SupervisedDataModule):
                 test_size=self.validation_size,
                 random_state=self.random_state,
                 stratify=dataset.labels  # 1d array
-                )
+            )
             
             self._train_datasets.append(                        # subset by indices
                 Subset(dataset, indices=torch.from_numpy(tr_idx))
@@ -192,10 +194,13 @@ class PACSDataModule(SupervisedDataModule):
 
     def train_dataloader(self, **kwargs):
         concat = ConcatDataset(self._train_datasets)
-        return DataLoader(concat,
-                          batch_size=self.batch_size,    # FIXME: 
-                          sampler=None,                  # FIXME: stratified batch
-                          num_workers=self.num_workers,  # FIXME: 
+        if kwargs.get('infinite', False):
+            loader_obj = InfiniteDataLoader
+        else:
+            loader_obj = DataLoader
+        return loader_obj(concat,
+                          batch_size=kwargs.get('batch_size', self.batch_size),
+                          num_workers=kwargs.get('num_workers', self.num_workers),
                           )
 
     def val_dataloader(self, **kwargs):
@@ -304,14 +309,22 @@ class SemiPACSDataModule(SemiSupervisedDataModule):
 
     def _labeled_dataloader(self, **kwargs):
         concat = ConcatDataset(self._labeled_datasets)
-        return DataLoader(concat,
+        if kwargs.get('infinite', False):
+            loader_obj = InfiniteDataLoader
+        else:
+            loader_obj = DataLoader
+        return loader_obj(concat,
                           batch_size=kwargs.get('batch_size', self.batch_size),
                           num_workers=kwargs.get('num_workers', self.num_workers)
                           )
 
     def _unlabeled_dataloader(self, **kwargs):
         concat = ConcatDataset(self._unlabeled_datasets)
-        return DataLoader(concat,
+        if kwargs.get('infinite', False):
+            loader_obj = InfiniteDataLoader
+        else:
+            loader_obj = DataLoader
+        return loader_obj(concat,
                           batch_size=kwargs.get('batch_size', self.batch_size),
                           num_workers=kwargs.get('num_workers', self.num_workers)
                           )
