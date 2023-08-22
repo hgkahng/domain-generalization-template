@@ -161,3 +161,4 @@ cython_debug/
 
 # for this repository
 data/
+.DS_Store
