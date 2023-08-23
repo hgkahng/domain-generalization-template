@@ -21,7 +21,7 @@ class Camelyon17(torch.utils.data.Dataset):
     _allowed_hospitals = (0, 1, 2, 3, 4)
 
     def __init__(self,
-                 root: str = 'data/camelyon17_v1.0',
+                 root: str = 'data/wilds/camelyon17_v1.0',
                  hospitals: typing.Iterable[int] = [0],
                  split: str = None,
                  in_memory: typing.Optional[int] = 0,
@@ -112,7 +112,7 @@ class UnlabeledCamelyon17(torch.utils.data.Dataset):
     _allowed_hospitals = (0, 1, 2, 3, 4)
 
     def __init__(self,
-                 root: str = 'data/camelyon17_unlabeled_v1.0',
+                 root: str = 'data/wilds/camelyon17_unlabeled_v1.0',
                  hospitals: typing.Iterable[int] = [0],
                  ) -> None:
         
@@ -178,7 +178,7 @@ class UnlabeledCamelyon17(torch.utils.data.Dataset):
 
 class Camelyon17DataModule(SupervisedDataModule):
     def __init__(self,
-                 root: str = 'data/camelyon17_v1.0',
+                 root: str = 'data/wilds/camelyon17_v1.0',
                  train_domains: typing.Iterable[int] = [0, 3, 4],
                  validation_domains: typing.Iterable[int] = [1],
                  test_domains: typing.Iterable[int] = [2],
@@ -299,8 +299,8 @@ class Camelyon17DataModule(SupervisedDataModule):
 
 class SemiCamelyon17DataModule(SemiSupervisedDataModule):
     def __init__(self,
-                 root: str = 'data/camelyon17_v1.0',
-                 unlabeled_root: str = 'data/camelyon17_unlabeled_v1.0',
+                 root: str = 'data/wilds/camelyon17_v1.0',
+                 unlabeled_root: str = 'data/wilds/camelyon17_unlabeled_v1.0',
                  train_domains: typing.Iterable[int] = [0, 3, 4],
                  validation_domains: typing.Iterable[int] = [1],
                  test_domains: typing.Iterable[int] = [2],
