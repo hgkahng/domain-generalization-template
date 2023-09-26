@@ -24,6 +24,7 @@ from dg_template.datasets.base import SupervisedDataModule
 from dg_template.datasets.base import SemiSupervisedDataModule
 
 from dg_template.datasets.utils import pil_loader
+from dg_template.datasets.utils import train_test_split_by_n_samples_per_class
 
 
 class OfficeHome(torch.utils.data.Dataset):
@@ -232,7 +233,7 @@ class SemiOfficeHomeDataModule(SemiSupervisedDataModule):
                  train_environments: typing.Iterable[str] = ['A', 'C', 'P'],
                  test_environments: typing.Iterable[str] = ['R'],
                  validation_size: float = 0.2,
-                 labeled_size: float = 0.05,
+                 labeled_size: typing.Union[float, int] = 0.05,
                  random_state: int = 42,
                  batch_size: int = 32,
                  num_workers: int = 1,
@@ -248,7 +249,11 @@ class SemiOfficeHomeDataModule(SemiSupervisedDataModule):
         self.test_environments = test_environments
 
         self.validation_size: float = validation_size
+        if (self.validation_size <= 0.0) or (self.validation_size >= 1.0):
+            raise ValueError(f"Invalid validation size: {self.validation_size}. Must be in (0.0, 1.0)")
+
         self.labeled_size: float = labeled_size  # TODO: support for exact number of examples per class
+        assert self.labeled_size > 0
 
         self.random_state: int = random_state
 
@@ -277,12 +282,26 @@ class SemiOfficeHomeDataModule(SemiSupervisedDataModule):
             )
 
             # 2) split labeled & unlabeled indices
-            labeled_idx, unlabeled_idx = train_test_split(
-                tr_idx,
-                train_size=labeled_size,
-                random_state=random_state,
-                stratify=dataset.labels[tr_idx]
-            )
+            if self.labeled_size < 1:
+                
+                # option a) stratified sampling perserving label distribution
+                labeled_idx, unlabeled_idx = train_test_split(
+                    tr_idx,
+                    train_size=labeled_size,
+                    random_state=random_state,
+                    stratify=dataset.labels[tr_idx]
+                )
+
+            else:
+                
+                # option b) `self.labeled_size` specifies per-domain per-class number of samples
+                n_samples_per_class_per_domain = int(self.labeled_size)
+                labeled_idx, unlabeled_idx = train_test_split_by_n_samples_per_class(
+                    tr_idx,
+                    dataset.labels[tr_idx],
+                    n_samples_per_class=n_samples_per_class_per_domain,
+                    random_state=random_state,
+                )
 
             self._labeled_datasets.append(
                 Subset(dataset, indices=torch.from_numpy(labeled_idx))
