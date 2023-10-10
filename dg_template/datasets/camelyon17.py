@@ -23,7 +23,7 @@ class Camelyon17(torch.utils.data.Dataset):
     def __init__(self,
                  root: str = 'data/wilds/camelyon17_v1.0',
                  hospitals: typing.Iterable[int] = [0],
-                 split: str = None,
+                 split: typing.Optional[str] = None,
                  in_memory: typing.Optional[int] = 0,
                  ) -> None:
         super().__init__()
@@ -163,7 +163,6 @@ class UnlabeledCamelyon17(torch.utils.data.Dataset):
     def __getitem__(self, index: int) -> typing.Dict[str, torch.Tensor]:
         return dict(
             x=self.get_input(index),
-            y=self.get_target(index),
             domain=self.get_domain(index),
             eval_group=self.get_eval_group(index),
         )
