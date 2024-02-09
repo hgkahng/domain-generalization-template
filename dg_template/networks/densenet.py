@@ -25,7 +25,7 @@ class DenseNetBackbone(_ConvBackboneBase):
 
         if self.in_channels != 3:
             self.layers = self.change_first_conv_input_channels(self.layers, c=self.in_channels)
-        
+
     def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
         #return F.normalize(self.layers(x), p=2, dim=-1)
         return self.layers(x)
@@ -41,7 +41,7 @@ class DenseNetBackbone(_ConvBackboneBase):
             return densenet201(pretrained=self.pretrained)
         else:
             raise NotImplementedError
-    
+
     @staticmethod
     def keep_backbone_only(densenet: nn.Module, gap_and_flatten: bool = True) -> nn.Module:
         """Add function docstring."""
@@ -57,9 +57,9 @@ class DenseNetBackbone(_ConvBackboneBase):
         if gap_and_flatten:
             model.add_module('gap', nn.AdaptiveAvgPool2d(1))
             model.add_module('flatten', Flatten())
-        
+
         return model
-    
+
     @staticmethod
     def change_first_conv_input_channels(densenet: nn.Module, c: int) -> nn.Module:
         """Add function docstring."""
@@ -84,10 +84,10 @@ class DenseNetBackbone(_ConvBackboneBase):
                 model.add_module(name, sub_model)
             else:
                 # ReLU layer from `keep_backbone_only`
-                model.add_module(name, child)       
+                model.add_module(name, child)
 
-        return model      
-        
+        return model
+
     @property
     def out_channels(self) -> int:
         if self.name == 'densenet121':
